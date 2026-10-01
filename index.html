@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DPO for English-Mandarin Code-Switching ASR in Audio LLMs</title>
+  <meta name="description"
+        content="Audio LLMs often translate, drop one language, or hallucinate when they transcribe English-Mandarin code-switching speech. Direct Preference Optimization on about 100K preference pairs aligns three Audio LLMs to keep the mixed-language transcription. Interspeech 2026.">
+  <meta name="keywords" content="code-switching, speech recognition, audio language models, direct preference optimization, English-Mandarin, Interspeech 2026">
+  <meta name="theme-color" content="#f7f5f0">
+
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ngquangtrung57.github.io/codeswitch-dpo-page/">
+  <meta property="og:title" content="Direct Preference Optimization for English-Mandarin Code-Switching Speech Recognition in Audio LLMs">
+  <meta property="og:description" content="Interspeech 2026. DPO on 100,766 preference pairs (566.8 hours) aligns three Audio LLMs to transcribe mixed-language speech instead of translating it, with relative MER reductions of up to 89.6% in-distribution and 20.0% out-of-distribution.">
+  <meta property="og:image" content="https://ngquangtrung57.github.io/codeswitch-dpo-page/static/images/method_overview.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Direct Preference Optimization for English-Mandarin Code-Switching Speech Recognition in Audio LLMs">
+  <meta name="twitter:description" content="Interspeech 2026. DPO on 100,766 preference pairs (566.8 hours) aligns three Audio LLMs to transcribe mixed-language speech instead of translating it.">
+  <meta name="twitter:image" content="https://ngquangtrung57.github.io/codeswitch-dpo-page/static/images/method_overview.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./static/css/style.css">
+  <link rel="icon" href="./static/images/favicon.svg">
+  <script defer src="./static/js/main.js"></script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar" id="top">
+  <div class="topbar-inner">
+    <a class="brand" href="#top" aria-label="Code-Switching DPO, back to top">
+      <span class="dots" aria-hidden="true"><i class="e"></i><i class="z"></i></span>
+      <span>Code-Switching <em>DPO</em></span>
+    </a>
+    <nav class="toc" aria-label="Sections">
+      <a href="#overview">Overview</a>
+      <a href="#failures">Failure modes</a>
+      <a href="#method">Method</a>
+      <a href="#results">Results</a>
+      <a href="#examples">Examples</a>
+      <a href="#data">Data</a>
+      <a href="#bibtex">BibTeX</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap hero-inner">
+    <p class="venue">Interspeech 2026</p>
+    <h1 class="title">Direct Preference Optimization for English-Mandarin Code-Switching Speech Recognition in Audio LLMs</h1>
+
+    <ul class="authors">
+      <li>Nguyen Quang Trung<sup>1,2</sup><svg class="env" viewBox="0 0 24 24" aria-label="corresponding author" role="img"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg></li>
+      <li>Cheng Yi Lewis Won<sup>1</sup></li>
+      <li>Minh Duc Pham<sup>1</sup></li>
+      <li>Yingxu He<sup>1</sup></li>
+      <li>Shuo Sun<sup>1</sup></li>
+      <li>Ai Ti Aw<sup>1</sup></li>
+    </ul>
+    <ul class="affils">
+      <li><sup>1</sup>Institute for Infocomm Research (I2R), A*STAR, Singapore</li>
+      <li><sup>2</sup>Nanyang Technological University, Singapore</li>
+    </ul>
+    <p class="corr"><svg class="env" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg> Corresponding author</p>
+
+    <div class="links">
+      <a class="btn" href="https://arxiv.org/pdf/2605.23975">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
+        <span>PDF</span></a>
+      <a class="btn" href="https://arxiv.org/abs/2605.23975">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20 12 4l7 16M8 13h8"/></svg>
+        <span>arXiv</span></a>
+      <a class="btn" href="https://huggingface.co/datasets/ngqtrung/cs-dialogue-dpo">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5.5" rx="7" ry="2.5"/><path d="M5 5.5v13c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-13M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/></svg>
+        <span>CS-Dialogue-DPO</span></a>
+      <a class="btn" href="https://huggingface.co/datasets/ngqtrung/emilia-dpo">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5.5" rx="7" ry="2.5"/><path d="M5 5.5v13c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-13M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/></svg>
+        <span>Emilia-DPO</span></a>
+      <a class="btn ghost" href="https://huggingface.co/collections/ngqtrung/code-switching-dpo-interspeech-2026-6abe22e1354de48b54c0044b">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span>HF Collection</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TL;DR ============ -->
+<section class="band" id="overview">
+  <div class="wrap">
+    <div class="tldr">
+      <p class="kicker">TL;DR</p>
+      <p class="tldr-text">
+        Multilingual Audio LLMs often fail on English-Mandarin code-switching speech: they drop one language,
+        translate instead of transcribe, or hallucinate. We train three Audio LLMs with Direct Preference Optimization
+        (DPO) on pairs in which the chosen response keeps the mixed-language transcription and the rejected response
+        imitates a failure. DPO shifts the models toward verbatim mixed-language output, with relative MER reductions of
+        up to <span class="num hi">89.6%</span> in-distribution and <span class="num hi">20.0%</span> out-of-distribution.
+        We read this as DPO eliciting a capability that the models already have.
+      </p>
+    </div>
+
+    <dl class="stats">
+      <div><dt>preference pairs</dt><dd>100,766</dd></div>
+      <div><dt>hours of audio</dt><dd>566.8</dd></div>
+      <div><dt>Audio LLMs</dt><dd>3</dd></div>
+      <div><dt>benchmarks</dt><dd>4</dd></div>
+    </dl>
+  </div>
+</section>
+
+<!-- ============ VIDEO (hidden automatically if the file is absent) ============ -->
+<section class="section" id="video" style="padding-top: 0;">
+  <div class="wrap narrow">
+    <div class="video-frame">
+      <video controls playsinline preload="metadata" poster="static/images/promo_poster.jpg">
+        <source src="static/videos/promo.mp4" type="video/mp4" onerror="this.closest('section').hidden = true;">
+        Your browser does not play MP4 video. <a href="static/videos/promo.mp4">Download the video</a>.
+      </video>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ABSTRACT ============ -->
+<section class="section alt" id="abstract">
+  <div class="wrap narrow">
+    <div class="prose abstract-box">
+      <p class="kicker">Abstract</p>
+      <p>
+        Audio large language models (Audio LLMs) exhibit systematic failures in transcribing code-switching speech
+        despite strong multilingual capabilities. Focusing on English-Mandarin, we identify three failure modes:
+        language omission, translation-instead-of-transcription, and hallucination. We apply Direct Preference
+        Optimization (DPO) to align models, constructing preference pairs in which chosen responses preserve
+        mixed-language content while rejected responses mimic failure patterns. Training three Audio LLMs on 100K pairs
+        (570 hours), we observe consistent behavioral shifts: models learn to preserve language composition rather than
+        translating when prompted for transcription. This alignment yields MER reductions up to 89.6% (in-distribution)
+        and 20.0% (out-of-distribution). Our findings suggest DPO can effectively elicit correct code-switching
+        transcription behavior from multilingual Audio LLMs.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAILURE MODES ============ -->
+<section class="section" id="failures">
+  <div class="wrap">
+    <header class="sec-head">
+      <p class="kicker">The problem</p>
+      <h2>Three failure modes</h2>
+      <p class="lede">
+        When we ask for a transcription of code-switching audio, even models trained with code-switching data fail in
+        three systematic ways. The examples below are the ones in the paper.
+      </p>
+    </header>
+
+    <div class="modes">
+      <article class="card">
+        <span class="tag">1</span>
+        <h3>Language omission</h3>
+        <p>The model outputs only one language and drops the other.</p>
+        <p class="ex" lang="zh">
+          <span class="gt"><b>GT</b>我住 temasek poly 那边</span>
+          <span class="bad"><b>Out</b>我住那边</span>
+        </p>
+      </article>
+      <article class="card">
+        <span class="tag">2</span>
+        <h3>Translation instead of transcription</h3>
+        <p>The model translates the mixed-language content into one language.</p>
+        <p class="ex" lang="zh">
+          <span class="gt"><b>GT</b>我们都应该 pursue a healthy lifestyle</span>
+          <span class="bad"><b>Out</b>我们都应该追求健康的生活方式</span>
+        </p>
+      </article>
+      <article class="card">
+        <span class="tag">3</span>
+        <h3>Hallucination</h3>
+        <p>The model generates repeated or fabricated content.</p>
+        <p class="ex" lang="zh">
+          <span class="gt"><b>GT</b>我们二月多有 valentine's day</span>
+          <span class="bad"><b>Out</b>ah month... (×250)</span>
+        </p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ METHOD ============ -->
+<section class="section alt" id="method">
+  <div class="wrap">
+    <header class="sec-head">
+      <p class="kicker">Method</p>
+      <h2>Preference pairs from ground truth</h2>
+      <p class="lede">
+        The chosen response is the ground-truth code-switching transcription. Qwen3-32B rewrites the same transcription
+        into a rejected response that imitates a failure. Vanilla DPO then raises the likelihood of the chosen response
+        and lowers that of the rejected one, relative to the frozen base model.
+      </p>
+    </header>
+
+    <figure class="fig scroll">
+      <a href="./static/images/method_overview.png"><img src="./static/images/method_overview.png" width="2728" height="332" loading="lazy"
+           alt="Pipeline: code-switching audio and its ground-truth transcription. The ground truth becomes the chosen response; Qwen3-32B turns it into a rejected response by global or partial translation. The audio, chosen and rejected responses form a preference pair, which DPO training uses to produce an aligned Audio LLM."></a>
+      <figcaption>
+        Overview of DPO training for code-switching alignment. Ground-truth transcriptions serve as chosen responses,
+        while an LLM generates rejected responses that mimic failure modes via Global Translation (full) and Partial
+        Translation (spans only).
+      </figcaption>
+    </figure>
+
+    <div class="cards three">
+      <article class="card step"><span class="n">1</span><h3>Global translation (80%)</h3>
+        <p>All content of one language is translated into the other, which imitates translation-instead-of-transcription.
+        <br><span lang="zh">What grade are you? 真的很好哎… → 你几年级？真的很好哎…</span></p></article>
+      <article class="card step"><span class="n">2</span><h3>Partial translation (20%)</h3>
+        <p>Only short spans are translated, which imitates partial language omission.
+        <br><span lang="zh">It's so boring and dull → It's so 无聊 and dull</span></p></article>
+      <article class="card step"><span class="n">3</span><h3>DPO training</h3>
+        <p>One epoch on 8 H100 GPUs with 20 English and 20 Chinese transcription prompts. Evaluation uses a held-out
+        prompt, “Please transcribe this speech.”</p></article>
+    </div>
+    <p class="note">
+      Both strategies target translation failures only. We do not generate rejected samples for omission of content or
+      for hallucination, but DPO still reduces all three failure modes.
+    </p>
+  </div>
+</section>
+
+<!-- ============ RESULTS ============ -->
+<section class="section" id="results">
+  <div class="wrap">
+    <header class="sec-head">
+      <p class="kicker">Results</p>
+      <h2>Consistent gains on all models and benchmarks</h2>
+      <p class="lede">
+        We train MERaLiON-2-3B, Phi-4-multimodal-instruct and Qwen2-Audio-7B-Instruct. SEAME dev_sge and dev_man are
+        out-of-distribution, because no SEAME data is in training. EMILIA-test and CS-Dialogue-test are held-out
+        portions of the training sources.
+      </p>
+    </header>
+
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Main results table">
+      <table class="tbl">
+        <thead><tr><th scope="col" class="l">model</th><th scope="col" class="l">benchmark</th><th scope="col">Base</th><th scope="col">DPO</th><th scope="col" class="sep">ΔRel</th></tr></thead>
+        <tbody>
+          <tr class="mstart"><th scope="rowgroup" rowspan="4" class="l">MERaLiON-2-3B</th><td class="l">SEAME dev_sge</td><td>32.38</td><td>31.75</td><td class="sep gain">−2.0%</td></tr>
+          <tr><td class="l">SEAME dev_man</td><td>25.79</td><td>25.61</td><td class="sep gain">−0.7%</td></tr>
+          <tr><td class="l">EMILIA</td><td>32.01</td><td>30.41</td><td class="sep gain">−5.0%</td></tr>
+          <tr><td class="l">CS-Dialogue</td><td>25.41</td><td><b>22.58</b></td><td class="sep gain"><b>−11.1%</b></td></tr>
+          <tr class="mstart"><th scope="rowgroup" rowspan="4" class="l">Phi-4-multimodal-instruct</th><td class="l">SEAME dev_sge</td><td>69.97</td><td>61.09</td><td class="sep gain">−12.7%</td></tr>
+          <tr><td class="l">SEAME dev_man</td><td>51.97</td><td>46.63</td><td class="sep gain">−10.3%</td></tr>
+          <tr><td class="l">EMILIA</td><td>70.98</td><td><b>7.38</b></td><td class="sep gain"><b>−89.6%</b></td></tr>
+          <tr><td class="l">CS-Dialogue</td><td>49.61</td><td>10.65</td><td class="sep gain">−78.5%</td></tr>
+          <tr class="mstart"><th scope="rowgroup" rowspan="4" class="l">Qwen2-Audio-7B-Instruct</th><td class="l">SEAME dev_sge</td><td>95.11</td><td>85.52</td><td class="sep gain">−10.1%</td></tr>
+          <tr><td class="l">SEAME dev_man</td><td>72.89</td><td><b>58.30</b></td><td class="sep gain"><b>−20.0%</b></td></tr>
+          <tr><td class="l">EMILIA</td><td>44.70</td><td>42.08</td><td class="sep gain">−5.9%</td></tr>
+          <tr><td class="l">CS-Dialogue</td><td>38.91</td><td>31.40</td><td class="sep gain">−19.3%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tcap">
+      Mixed Error Rate (MER, %, lower is better): character level for Chinese, word level for English. ΔRel is the
+      relative change from Base to DPO. Each number comes from a single training run.
+    </p>
+
+    <div class="cards three">
+      <article class="card"><h3>MERaLiON-2-3B</h3><p>Small SEAME gains (0.7–2.0%), because the model already saw extensive code-switching data in supervised fine-tuning. CS-Dialogue still improves by 11.1%.</p></article>
+      <article class="card"><h3>Phi-4-multimodal-instruct</h3><p>The base model often translates or repeats itself. One epoch of DPO lowers MER on EMILIA from 70.98% to 7.38%.</p></article>
+      <article class="card"><h3>Qwen2-Audio-7B-Instruct</h3><p>A 20.0% relative gain on SEAME dev_man, the largest out-of-distribution gain, and 5.9–19.3% in-distribution. Trained with LoRA.</p></article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EXAMPLES ============ -->
+<section class="section alt" id="examples">
+  <div class="wrap">
+    <header class="sec-head">
+      <p class="kicker">Qualitative examples</p>
+      <h2>What DPO changes</h2>
+      <p class="lede">
+        After DPO, the models keep the mixed-language pattern and produce more stable transcriptions. One example for
+        each failure mode, from the paper.
+      </p>
+    </header>
+
+    <div class="modes">
+      <article class="card">
+        <span class="tag">Translation · Qwen2-Audio-7B-Instruct</span>
+        <p class="ex" lang="zh">
+          <span class="gt"><b>GT</b>我们都应该 pursue a healthy lifestyle</span>
+          <span class="bad"><b>Base</b>我们都应该追求健康的生活方式</span>
+          <span class="good"><b>DPO</b>我们都应该 pursue a healthy lifestyle</span>
+          <span class="mer" lang="en">MER 100% → 0%</span>
+        </p>
+      </article>
+      <article class="card">
+        <span class="tag">Hallucination · Phi-4-multimodal-instruct</span>
+        <p class="ex" lang="zh">
+          <span class="gt"><b>GT</b>我们二月多有 valentine's day</span>
+          <span class="bad"><b>Base</b>ah month ah month ah month... (×250)</span>
+          <span class="good"><b>DPO</b>二月多有 Valentine's Day</span>
+          <span class="mer" lang="en">MER 56.89% → 0.33%</span>
+        </p>
+      </article>
+      <article class="card">
+        <span class="tag">Language omission · MERaLiON-2-3B</span>
+        <p class="ex" lang="zh">
+          <span class="gt"><b>GT</b>我住 temasek poly 那边</span>
+          <span class="bad"><b>Base</b>我住达马士科波利那边 (transliterated)</span>
+          <span class="good"><b>DPO</b>我住 tamasek poly 那边</span>
+          <span class="mer" lang="en">MER 100% → 17%</span>
+        </p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DATA ============ -->
+<section class="section" id="data">
+  <div class="wrap">
+    <header class="sec-head">
+      <p class="kicker">Data</p>
+      <h2>Released preference datasets</h2>
+      <p class="lede">
+        The paper trains on 100,766 pairs (566.8 hours): 13,795 pairs (77.3 hours) from CS-Dialogue and 86,971 pairs
+        (489.5 hours) from EMILIA. CS-Dialogue gives natural intra-sentential switches and concatenated EN and CN
+        utterances from the same conversation. EMILIA gives synthetic inter-sentential switches from concatenated
+        English and Chinese clips.
+      </p>
+    </header>
+
+    <div class="split">
+      <div class="table-wrap" tabindex="0" role="region" aria-label="Dataset splits table">
+        <table class="tbl small-tbl">
+          <thead><tr><th scope="col" class="l">dataset</th><th scope="col">train</th><th scope="col">test</th></tr></thead>
+          <tbody>
+            <tr><th scope="row" class="l"><a href="https://huggingface.co/datasets/ngqtrung/cs-dialogue-dpo">CS-Dialogue-DPO</a></th><td>13,795</td><td>359</td></tr>
+            <tr><th scope="row" class="l"><a href="https://huggingface.co/datasets/ngqtrung/emilia-dpo">Emilia-DPO</a></th><td>86,971</td><td>1,000</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <p>
+          Hugging Face splits. Each row has four columns: <code>id</code>, <code>audio</code>, <code>chosen</code>
+          (the ground-truth transcription) and <code>rejected</code> (the failure-style rewrite).
+        </p>
+        <div class="code"><pre><code>from datasets import load_dataset
+
+ds = load_dataset("ngqtrung/cs-dialogue-dpo")
+print(ds["train"][0]["chosen"])</code></pre></div>
+      </div>
+    </div>
+    <p class="note">
+      The audio derives from CS-Dialogue (Zhou et al., 2025) and Emilia (He et al., SLT 2024). Users must follow the
+      licence terms of the original datasets.
+    </p>
+  </div>
+</section>
+
+<!-- ============ BIBTEX ============ -->
+<section class="section alt" id="bibtex">
+  <div class="wrap">
+    <header class="sec-head">
+      <p class="kicker">Citation</p>
+      <h2>BibTeX</h2>
+    </header>
+    <div class="bib">
+      <div class="bib-bar"><span>bibtex</span>
+      <button class="copy" type="button" data-target="bibcode" aria-label="Copy BibTeX to clipboard">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+        <span>Copy</span>
+      </button></div>
+<pre><code id="bibcode">@inproceedings{nguyen2026codeswitchdpo,
+  title     = {Direct Preference Optimization for {English-Mandarin} Code-Switching Speech Recognition in Audio {LLMs}},
+  author    = {Nguyen Quang, Trung and Won, Cheng Yi Lewis and Pham, Minh Duc and He, Yingxu and Sun, Shuo and Aw, Ai Ti},
+  booktitle = {Proc. Interspeech 2026},
+  year      = {2026},
+  doi       = {10.21437/Interspeech.2026-110}
+}</code></pre>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap foot">
+    <div>
+      <p class="brand small"><span class="dots" aria-hidden="true"><i class="e"></i><i class="z"></i></span><span>Code-Switching <em>DPO</em></span></p>
+      <p>Institute for Infocomm Research (I2R), A*STAR &middot; Nanyang Technological University</p>
+    </div>
+    <nav class="foot-links" aria-label="Project links">
+      <a href="https://arxiv.org/abs/2605.23975">arXiv</a>
+      <a href="https://arxiv.org/pdf/2605.23975">PDF</a>
+      <a href="https://doi.org/10.21437/Interspeech.2026-110">DOI</a>
+      <a href="https://huggingface.co/collections/ngqtrung/code-switching-dpo-interspeech-2026-6abe22e1354de48b54c0044b">Hugging Face</a>
+    </nav>
+    <p class="lic">
+      This website is licensed under a <a rel="license" href="https://creativecommons.org/licenses/by-sa/4.0/">Creative
+      Commons Attribution-ShareAlike 4.0 International License</a>.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
